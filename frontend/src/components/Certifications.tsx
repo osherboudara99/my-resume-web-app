@@ -30,7 +30,7 @@ export default function Certifications() {
           return (
             <li
               key={cert.file}
-              className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10"
+              className="overflow-hidden rounded-2xl border border-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg hover:shadow-accent/5 dark:border-white/10 dark:hover:border-accent-soft/60 dark:hover:shadow-black/20"
             >
               <button
                 type="button"

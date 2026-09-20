@@ -85,7 +85,7 @@ export default function Projects() {
         {sorted.map((repo) => (
           <div
             key={repo.name}
-            className="group relative flex flex-col rounded-2xl border border-slate-200 p-5 transition-colors hover:border-accent/60 dark:border-white/10 dark:hover:border-accent-soft/60"
+            className="group relative flex flex-col rounded-2xl border border-slate-200 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/60 hover:shadow-lg hover:shadow-accent/5 dark:border-white/10 dark:hover:border-accent-soft/60 dark:hover:shadow-black/20"
           >
             <h3 className="font-medium tracking-tight group-hover:text-accent dark:group-hover:text-accent-soft">
               <a href={repo.html_url} target="_blank" rel="noreferrer" className="after:absolute after:inset-0">
