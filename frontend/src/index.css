@@ -40,6 +40,15 @@
   ::selection {
     @apply bg-blue-500/30 text-slate-900 dark:text-white;
   }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    @apply rounded-sm outline-none ring-2 ring-accent/60 ring-offset-2 ring-offset-white dark:ring-offset-[#0b0b12];
+  }
 }
 
 @layer utilities {
