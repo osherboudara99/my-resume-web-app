@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { fetchRepos, type Repo } from '../lib/api'
+import { useMemo, useState } from 'react'
+import { useGithubData } from '../lib/githubData'
 import Section from './Section'
 
 type SortKey = 'updated_at' | 'created_at' | 'name'
@@ -11,16 +11,9 @@ const SORT_LABELS: Record<SortKey, string> = {
 }
 
 export default function Projects() {
-  const [repos, setRepos] = useState<Repo[] | null>(null)
-  const [error, setError] = useState(false)
+  const { repos, reposError: error } = useGithubData()
   const [sortKey, setSortKey] = useState<SortKey>('updated_at')
   const [descending, setDescending] = useState(true)
-
-  useEffect(() => {
-    fetchRepos()
-      .then(setRepos)
-      .catch(() => setError(true))
-  }, [])
 
   const sorted = useMemo(() => {
     if (!repos) return []
