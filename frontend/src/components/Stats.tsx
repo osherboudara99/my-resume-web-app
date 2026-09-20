@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchGithubStats } from '../lib/api'
+import { useGithubData } from '../lib/githubData'
 import { getLiveMusicPlays } from '../lib/musicStats'
 import useCountUp from '../lib/useCountUp'
 import TerminalWindow from './TerminalWindow'
@@ -31,14 +31,8 @@ function StatCard({
 }
 
 export default function Stats() {
-  const [streak, setStreak] = useState<number | null>(null)
+  const { streak } = useGithubData()
   const [musicPlays, setMusicPlays] = useState(() => getLiveMusicPlays())
-
-  useEffect(() => {
-    fetchGithubStats()
-      .then((stats) => setStreak(stats.current_streak))
-      .catch(() => setStreak(null))
-  }, [])
 
   // Ticks the music stat forward at random moments while the tab is open,
   // matching the same "one at a time throughout the day" drift as the
