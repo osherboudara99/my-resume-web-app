@@ -3,9 +3,9 @@ import { fetchGithubStats, fetchRepos, type GithubStats, type Repo } from './api
 
 // Measured locally: a cache hit on the backend resolves in ~2ms, a cache miss
 // (GitHub API cold, one call per repo for languages) takes ~5-6s, and Cloud
-// Run's scale-to-zero can add a cold start on top of that. 12s clears that
-// worst case with room to spare rather than cutting it close.
-const READY_TIMEOUT_MS = 12000
+// Run's scale-to-zero can add a cold start on top of that. 10s gives that
+// worst case a comfortable margin without leaving the cap open-ended.
+const READY_TIMEOUT_MS = 10000
 
 interface GithubData {
   streak: number | null
