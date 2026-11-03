@@ -9,6 +9,11 @@ const SUGGESTIONS = [
   'What is his cloud experience?',
 ]
 
+// Mirror the backend's limits (backend/app/main.py, agent.py): the agent only
+// reads the last 6 turns, and longer payloads are rejected with a 422.
+const HISTORY_TURNS = 6
+const MAX_MESSAGE_CHARS = 2000
+
 export default function Chat() {
   const [open, setOpen] = useState(false)
   const [hintVisible, setHintVisible] = useState(false)
@@ -54,7 +59,7 @@ export default function Chat() {
     try {
       await streamChat(
         question,
-        history,
+        history.slice(-HISTORY_TURNS),
         (delta) =>
           setMessages((current) => {
             const next = [...current]
@@ -183,6 +188,7 @@ export default function Chat() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                maxLength={MAX_MESSAGE_CHARS}
                 placeholder="Ask a question…"
                 className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-accent dark:border-white/10 dark:focus:border-accent-soft"
               />

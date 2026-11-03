@@ -1,9 +1,10 @@
 import json
+from typing import Literal
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -28,14 +29,22 @@ app.add_middleware(
 )
 
 
+# Every character here is billed as Anthropic input tokens, so cap the payload.
+# The agent only uses the last few turns; the frontend sends just those, and the
+# history cap leaves headroom without letting a client stuff the context.
+MAX_MESSAGE_CHARS = 2000
+MAX_TURN_CHARS = 8000  # an assistant reply at max_tokens fits comfortably
+MAX_HISTORY_TURNS = 20
+
+
 class ChatTurn(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=MAX_TURN_CHARS)
 
 
 class ChatRequest(BaseModel):
-    message: str
-    history: list[ChatTurn] = []
+    message: str = Field(max_length=MAX_MESSAGE_CHARS)
+    history: list[ChatTurn] = Field(default_factory=list, max_length=MAX_HISTORY_TURNS)
 
 
 @app.get("/health")
