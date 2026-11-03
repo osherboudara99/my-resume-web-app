@@ -55,3 +55,11 @@ def test_unknown_role_rejected(client):
 
 def test_blank_message_rejected(client):
     assert post(client, "   ").status_code == 400
+
+
+def test_turn_limit_scales_with_max_tokens():
+    # A reply at max_tokens must always fit back into history.
+    assert main.turn_char_limit(100) == 8000  # floor for small budgets
+    assert main.turn_char_limit(4096) == 4096 * 12
+    assert main.MAX_TURN_CHARS == main.turn_char_limit(main.settings.max_tokens)
+

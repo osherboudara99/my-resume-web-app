@@ -52,8 +52,20 @@ app.add_middleware(
 # The agent only uses the last few turns; the frontend sends just those, and the
 # history cap leaves headroom without letting a client stuff the context.
 MAX_MESSAGE_CHARS = 2000
-MAX_TURN_CHARS = 8000  # an assistant reply at max_tokens fits comfortably
 MAX_HISTORY_TURNS = 20
+
+
+def turn_char_limit(max_tokens: int) -> int:
+    """Largest history turn accepted.
+
+    Assistant replies are echoed back as history, so this must fit a reply at
+    max_tokens. English runs ~4 chars/token; 12 leaves ~3x headroom, with a
+    floor so small budgets still allow a reasonable turn.
+    """
+    return max(8000, max_tokens * 12)
+
+
+MAX_TURN_CHARS = turn_char_limit(settings.max_tokens)
 
 
 class ChatTurn(BaseModel):
