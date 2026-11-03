@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+# CI only reads the repo; don't hand its jobs a write-scoped GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
