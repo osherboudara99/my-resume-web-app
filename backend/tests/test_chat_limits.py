@@ -63,3 +63,12 @@ def test_turn_limit_scales_with_max_tokens():
     assert main.turn_char_limit(4096) == 4096 * 12
     assert main.MAX_TURN_CHARS == main.turn_char_limit(main.settings.max_tokens)
 
+
+def test_422_does_not_echo_rejected_input(client):
+    secret = "SENTINEL" * 300  # 2400 chars, over the message cap
+    res = post(client, secret, [{"role": "system", "content": "SENTINEL-ROLE"}])
+    assert res.status_code == 422
+    assert "SENTINEL" not in res.text
+    errors = res.json()["detail"]
+    assert {tuple(e["loc"]) for e in errors} >= {("body", "message"), ("body", "history", 0, "role")}
+    assert all(set(e) == {"type", "loc", "msg"} for e in errors)

@@ -2,6 +2,7 @@ import json
 from typing import Literal
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
@@ -38,6 +39,16 @@ limiter = Limiter(key_func=client_ip)
 app = FastAPI(title="Osher's AI Twin API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    # FastAPI's default 422 echoes each rejected value back ("input"), which
+    # reflects whatever junk or oversized payload a client sent. Keep only
+    # where and why it failed.
+    detail = [{"type": e["type"], "loc": e["loc"], "msg": e["msg"]} for e in exc.errors()]
+    return JSONResponse({"detail": detail}, status_code=422)
+
 
 app.add_middleware(
     CORSMiddleware,
