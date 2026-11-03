@@ -1,24 +1,23 @@
 version: 2
+
+# Security updates only. open-pull-requests-limit: 0 disables routine version
+# update PRs while still letting Dependabot open PRs for known vulnerabilities
+# (repo setting: Dependabot security updates). Routine upgrades are done by hand.
 updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
-    groups:
-      # One PR for routine bumps instead of one per package; security fixes
-      # still open their own PRs.
-      frontend-deps:
-        update-types: [minor, patch]
+    open-pull-requests-limit: 0
 
   - package-ecosystem: uv
     directory: /backend
     schedule:
       interval: weekly
-    groups:
-      backend-deps:
-        update-types: [minor, patch]
+    open-pull-requests-limit: 0
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    open-pull-requests-limit: 0
