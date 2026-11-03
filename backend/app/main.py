@@ -14,7 +14,23 @@ from . import agent, content, github
 from .config import get_settings
 
 settings = get_settings()
-limiter = Limiter(key_func=get_remote_address)
+
+
+def client_ip(request: Request) -> str:
+    """The visitor's IP, for per-visitor rate limiting.
+
+    On Cloud Run the socket peer is always Google's internal proxy
+    (169.254.x.x), so keying on it would put every visitor in one bucket.
+    Google's front end appends the real client IP as the LAST X-Forwarded-For
+    entry; earlier entries are client-supplied and can be spoofed, so only the
+    last one is trusted. Falls back to the peer address (local dev).
+    """
+    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",")]
+    hops = [h for h in hops if h]
+    return hops[-1] if hops else get_remote_address(request)
+
+
+limiter = Limiter(key_func=client_ip)
 
 app = FastAPI(title="Osher's AI Twin API")
 app.state.limiter = limiter
