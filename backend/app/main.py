@@ -1,9 +1,11 @@
 import json
+from typing import Literal
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -13,11 +15,40 @@ from . import agent, content, github
 from .config import get_settings
 
 settings = get_settings()
-limiter = Limiter(key_func=get_remote_address)
+
+
+def client_ip(request: Request) -> str:
+    """The visitor's IP, for per-visitor rate limiting.
+
+    On Cloud Run the socket peer is always Google's internal proxy
+    (169.254.x.x), so keying on it would put every visitor in one bucket.
+    Google's front end appends the real client IP as the LAST X-Forwarded-For
+    entry; earlier entries are client-supplied and can be spoofed, so only the
+    last one is trusted. Repeated header lines are joined in order so a
+    client-sent line can't shadow the proxy's. Falls back to the peer address
+    (local dev).
+    """
+    forwarded = ",".join(request.headers.getlist("x-forwarded-for"))
+    hops = [h.strip() for h in forwarded.split(",")]
+    hops = [h for h in hops if h]
+    return hops[-1] if hops else get_remote_address(request)
+
+
+limiter = Limiter(key_func=client_ip)
 
 app = FastAPI(title="Osher's AI Twin API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    # FastAPI's default 422 echoes each rejected value back ("input"), which
+    # reflects whatever junk or oversized payload a client sent. Keep only
+    # where and why it failed.
+    detail = [{"type": e["type"], "loc": e["loc"], "msg": e["msg"]} for e in exc.errors()]
+    return JSONResponse({"detail": detail}, status_code=422)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,14 +59,34 @@ app.add_middleware(
 )
 
 
+# Every character here is billed as Anthropic input tokens, so cap the payload.
+# The agent only uses the last few turns; the frontend sends just those, and the
+# history cap leaves headroom without letting a client stuff the context.
+MAX_MESSAGE_CHARS = 2000
+MAX_HISTORY_TURNS = 20
+
+
+def turn_char_limit(max_tokens: int) -> int:
+    """Largest history turn accepted.
+
+    Assistant replies are echoed back as history, so this must fit a reply at
+    max_tokens. English runs ~4 chars/token; 12 leaves ~3x headroom, with a
+    floor so small budgets still allow a reasonable turn.
+    """
+    return max(8000, max_tokens * 12)
+
+
+MAX_TURN_CHARS = turn_char_limit(settings.max_tokens)
+
+
 class ChatTurn(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=MAX_TURN_CHARS)
 
 
 class ChatRequest(BaseModel):
-    message: str
-    history: list[ChatTurn] = []
+    message: str = Field(max_length=MAX_MESSAGE_CHARS)
+    history: list[ChatTurn] = Field(default_factory=list, max_length=MAX_HISTORY_TURNS)
 
 
 @app.get("/health")
