@@ -55,3 +55,9 @@ def test_one_visitor_hitting_the_limit_does_not_block_another(client):
     assert chat(client, "1.2.3.4, 203.0.113.7").status_code == 429
     # ...but a genuinely different visitor is unaffected.
     assert chat(client, "198.51.100.9").status_code == 200
+
+
+def test_repeated_header_lines_trust_the_last_value():
+    raw = [(b"x-forwarded-for", b"198.51.100.50"), (b"x-forwarded-for", b"203.0.113.7")]
+    req = Request({"type": "http", "headers": raw, "client": ("169.254.169.126", 1234)})
+    assert main.client_ip(req) == "203.0.113.7"

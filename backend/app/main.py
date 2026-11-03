@@ -23,9 +23,12 @@ def client_ip(request: Request) -> str:
     (169.254.x.x), so keying on it would put every visitor in one bucket.
     Google's front end appends the real client IP as the LAST X-Forwarded-For
     entry; earlier entries are client-supplied and can be spoofed, so only the
-    last one is trusted. Falls back to the peer address (local dev).
+    last one is trusted. Repeated header lines are joined in order so a
+    client-sent line can't shadow the proxy's. Falls back to the peer address
+    (local dev).
     """
-    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",")]
+    forwarded = ",".join(request.headers.getlist("x-forwarded-for"))
+    hops = [h.strip() for h in forwarded.split(",")]
     hops = [h for h in hops if h]
     return hops[-1] if hops else get_remote_address(request)
 
